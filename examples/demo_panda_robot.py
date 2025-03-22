@@ -1,5 +1,5 @@
-from mujoco_panda import PandaArm
-from mujoco_panda.utils.debug_utils import ParallelPythonCmd
+from mujoco_panda.mujoco_panda import PandaArm
+from mujoco_panda.mujoco_panda.utils.debug_utils import ParallelPythonCmd
 
 """
 Testing PandaArm instance and parallel command utility
