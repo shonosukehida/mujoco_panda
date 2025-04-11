@@ -3,6 +3,7 @@ from mujoco_panda.utils.tf import quatdiff_in_euler
 from .configs import BASIC_HYB_CONFIG
 import numpy as np
 
+
 class OSHybridForceMotionController(ControllerBase):
     """
     Torque-based task-space hybrid force motion controller.
@@ -16,7 +17,9 @@ class OSHybridForceMotionController(ControllerBase):
     
     """
 
-    def __init__(self, robot_object, config=BASIC_HYB_CONFIG, control_rate=None, *args, **kwargs):
+    def __init__(
+        self, robot_object, config=BASIC_HYB_CONFIG, control_rate=None, *args, **kwargs
+    ):
         """
         contstructor
 
@@ -27,49 +30,47 @@ class OSHybridForceMotionController(ControllerBase):
         :type config: dict, optional
         """
         if control_rate is not None:
-            config['control_rate'] = control_rate
-            
-        super(OSHybridForceMotionController,
-              self).__init__(robot_object, config)
+            config["control_rate"] = control_rate
+
+        super(OSHybridForceMotionController, self).__init__(robot_object, config)
 
         self._goal_pos, self._goal_ori = self._robot.ee_pose()
         self._goal_vel, self._goal_omg = np.zeros(3), np.zeros(3)
-        self._goal_force, self._goal_torque = np.zeros(
-            3), np.zeros(3)
+        self._goal_force, self._goal_torque = np.zeros(3), np.zeros(3)
 
         # gains for position
-        self._kp_p = np.diag(self._config['kp_p'])
-        self._kd_p = np.diag(self._config['kd_p'])
+        self._kp_p = np.diag(self._config["kp_p"])
+        self._kd_p = np.diag(self._config["kd_p"])
 
         # gains for orientation
-        self._kp_o = np.diag(self._config['kp_o'])
-        self._kd_o = np.diag(self._config['kd_o'])
+        self._kp_o = np.diag(self._config["kp_o"])
+        self._kd_o = np.diag(self._config["kd_o"])
 
         # gains for force
-        self._kp_f = np.diag(self._config['kp_f'])
-        self._kd_f = np.diag(self._config['kd_f'])
+        self._kp_f = np.diag(self._config["kp_f"])
+        self._kd_f = np.diag(self._config["kd_f"])
 
         # gains for torque
-        self._kp_t = np.diag(self._config['kp_t'])
-        self._kd_t = np.diag(self._config['kd_t'])
+        self._kp_t = np.diag(self._config["kp_t"])
+        self._kd_t = np.diag(self._config["kd_t"])
 
-        self._force_dir = np.diag(self._config['ft_dir'][:3])
-        self._torque_dir = np.diag(self._config['ft_dir'][3:])
+        self._force_dir = np.diag(self._config["ft_dir"][:3])
+        self._torque_dir = np.diag(self._config["ft_dir"][3:])
 
         self._pos_p_dir = np.diag([1, 1, 1]) ^ self._force_dir
         self._pos_o_dir = np.diag([1, 1, 1]) ^ self._torque_dir
 
-        self._use_null_ctrl = self._config['use_null_space_control']
+        self._use_null_ctrl = self._config["use_null_space_control"]
 
         if self._use_null_ctrl:
 
-            self._null_Kp = np.diag(self._config['null_kp'])
+            self._null_Kp = np.diag(self._config["null_kp"])
 
-            self._null_ctrl_wt = self._config['null_ctrl_wt']
+            self._null_ctrl_wt = self._config["null_ctrl_wt"]
 
-        self._pos_threshold = self._config['linear_error_thr']
+        self._pos_threshold = self._config["linear_error_thr"]
 
-        self._angular_threshold = self._config['angular_error_thr']
+        self._angular_threshold = self._config["angular_error_thr"]
 
     def set_active(self, status=True):
         """
@@ -81,8 +82,7 @@ class OSHybridForceMotionController(ControllerBase):
         if status:
             self._goal_pos, self._goal_ori = self._robot.ee_pose()
             self._goal_vel, self._goal_omg = np.zeros(3), np.zeros(3)
-            self._goal_force, self._goal_torque = np.zeros(
-                3), np.zeros(3)
+            self._goal_force, self._goal_torque = np.zeros(3), np.zeros(3)
         self._is_active = status
 
     def _compute_cmd(self):
@@ -118,28 +118,37 @@ class OSHybridForceMotionController(ControllerBase):
         delta_omg = self._pos_o_dir.dot(self._goal_omg - curr_omg)
 
         # compute force control part along force dimensions # negative sign to convert from experienced to applied
-        force_control = -self._force_dir.dot(self._kp_f.dot(delta_force) - np.abs(self._kd_f.dot(delta_vel)) + self._goal_force)
+        force_control = -self._force_dir.dot(
+            self._kp_f.dot(delta_force)
+            - np.abs(self._kd_f.dot(delta_vel))
+            + self._goal_force
+        )
         # compute position control force along position dimensions (orthogonal to force dims)
         position_control = self._pos_p_dir.dot(
-            self._kp_p.dot(delta_pos) + self._kd_p.dot(delta_vel))
+            self._kp_p.dot(delta_pos) + self._kd_p.dot(delta_vel)
+        )
 
         # total cartesian force at end-effector
         x_des = position_control + force_control
 
         if self._goal_ori is not None:  # orientation conttrol
-            
+
             if np.linalg.norm(delta_ori) < self._angular_threshold:
                 delta_ori = np.zeros(delta_ori.shape)
                 delta_omg = np.zeros(delta_omg.shape)
 
             # compute orientation control force along orientation dimensions
             ori_pos_ctrl = self._pos_o_dir.dot(
-                self._kp_o.dot(delta_ori) + self._kd_o.dot(delta_omg))
+                self._kp_o.dot(delta_ori) + self._kd_o.dot(delta_omg)
+            )
 
-            # compute torque control force along torque dimensions (orthogonal to orientation dimensions) 
+            # compute torque control force along torque dimensions (orthogonal to orientation dimensions)
             # negative sign to convert from experienced to applied
-            torque_f_ctrl = - self._torque_dir.dot(self._kp_t.dot(
-                delta_torque) - self._kd_t.dot(delta_omg) + self._goal_torque)
+            torque_f_ctrl = -self._torque_dir.dot(
+                self._kp_t.dot(delta_torque)
+                - self._kd_t.dot(delta_omg)
+                + self._goal_torque
+            )
 
             # total torque in cartesian at end-effector
             omg_des = ori_pos_ctrl + torque_f_ctrl
@@ -150,29 +159,38 @@ class OSHybridForceMotionController(ControllerBase):
 
         f_ee = np.hstack([x_des, omg_des])  # Desired end-effector force
 
-        u = np.dot(jac_ee.T, f_ee) # desired joint torque
+        u = np.dot(jac_ee.T, f_ee)  # desired joint torque
 
         if np.any(np.isnan(u)):
             u = self._cmd
         else:
             self._cmd = u
 
-        if self._use_null_ctrl: # null-space control, if required
+        if self._use_null_ctrl:  # null-space control, if required
 
             null_space_filter = self._null_Kp.dot(
-                np.eye(7) - jac_ee.T.dot(np.linalg.pinv(jac_ee.T, rcond=1e-3)))
+                np.eye(7) - jac_ee.T.dot(np.linalg.pinv(jac_ee.T, rcond=1e-3))
+            )
 
             # add null-space torque in the null-space projection of primary task
-            self._cmd = self._cmd + \
-                null_space_filter.dot(
-                    self._robot._neutral_pose-self._robot.joint_positions()[:7])
+            self._cmd = self._cmd + null_space_filter.dot(
+                self._robot._neutral_pose - self._robot.joint_positions()[:7]
+            )
 
         # update the error
-        self._error = {'linear': delta_pos, 'angular': delta_ori}
+        self._error = {"linear": delta_pos, "angular": delta_ori}
 
         return self._cmd
 
-    def set_goal(self, goal_pos, goal_ori=None, goal_vel=np.zeros(3), goal_omg=np.zeros(3), goal_force=None, goal_torque=None):
+    def set_goal(
+        self,
+        goal_pos,
+        goal_ori=None,
+        goal_vel=np.zeros(3),
+        goal_omg=np.zeros(3),
+        goal_force=None,
+        goal_torque=None,
+    ):
         """
         change the target for the controller
         """
@@ -182,9 +200,13 @@ class OSHybridForceMotionController(ControllerBase):
         self._goal_vel = goal_vel
         self._goal_omg = goal_omg
         if goal_force is not None:
-            self._goal_force = - np.asarray(goal_force) # applied force = - experienced force
+            self._goal_force = -np.asarray(
+                goal_force
+            )  # applied force = - experienced force
         if goal_torque is not None:
-            self._goal_torque = - np.asarray(goal_torque) # applied torque = - experienced torque
+            self._goal_torque = -np.asarray(
+                goal_torque
+            )  # applied torque = - experienced torque
         self._mutex.release()
 
     def change_ft_dir(self, directions):

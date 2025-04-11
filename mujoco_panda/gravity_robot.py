@@ -1,5 +1,6 @@
 import mujoco_py as mjp
 
+
 class GravityRobot(object):
     """
     Robot instance for gravity compensation only.
@@ -11,8 +12,7 @@ class GravityRobot(object):
 
         self._controllable_joints = self.get_controllable_joints()
 
-        self._all_joints = [self.model.joint_name2id(
-            j) for j in self.model.joint_names]
+        self._all_joints = [self.model.joint_name2id(j) for j in self.model.joint_names]
 
     def get_controllable_joints(self):
         """

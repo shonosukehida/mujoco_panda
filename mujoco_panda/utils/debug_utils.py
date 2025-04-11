@@ -1,5 +1,6 @@
 try:
     from tkinter import *
+
     _NO_TK = False
 except ImportError:
     print("tkinter not found. Cannot run with ParallelPythonCmd with tkinter.")
@@ -10,7 +11,6 @@ from .keyboard_poll import KBHit
 
 
 class ParallelPythonCmd(object):
-
     def __init__(self, callable_func, kbhit=False):
         """
         Provides a debugger thread when using mujoco visualiser rendering.
@@ -39,18 +39,18 @@ class ParallelPythonCmd(object):
     def _run(self):
         kb = KBHit()
         print("Running KBHit debugger...")
-        string = ''
+        string = ""
         while True:
             c = kb.getch()
             if ord(c) == 27:
-                string = ''
+                string = ""
             elif ord(c) == 10:
                 ret = self._callable(string)
                 if ret is not None:
                     print("Cmd: {}\nOutput: {}".format(string, ret))
-                string = ''
+                string = ""
             elif ord(c) == 127:
-                if string != '':
+                if string != "":
                     string = string[:-1]
             else:
                 string += c
@@ -65,7 +65,7 @@ class ParallelPythonCmd(object):
         self._text.insert(INSERT, "Hello.....")
         self._text.pack()
         self._e.focus_set()
-        self._root.bind('<Return>', self._printtext)
+        self._root.bind("<Return>", self._printtext)
         self._root.mainloop()
 
     def _printtext(self, event=None):
@@ -74,7 +74,8 @@ class ParallelPythonCmd(object):
         if a is not None:
             self._text.delete("%d.%d" % (0, 0), END)
             self._text.insert(INSERT, str(a))
-        self._e.delete(0, 'end')
+        self._e.delete(0, "end")
+
 
 # demo exec function handle
 
@@ -92,7 +93,7 @@ def exec_func(cmd):
         - optionally return a string    
     """
 
-    if cmd == '':
+    if cmd == "":
         return None
     print(cmd)
     try:
@@ -103,6 +104,6 @@ def exec_func(cmd):
             a = eval(cmd)
             print(a)
     except Exception as e:
-        a = "Exception: {}: {}".format(e.what(),e)
+        a = "Exception: {}: {}".format(e.what(), e)
     if a is not None:
         return str(a)
